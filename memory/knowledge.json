@@ -1,1 +1,4 @@
-{}
+{
+  "test_fact": "Jena permanent memory test OK",
+  "second_fact": "Second memory test OK"
+}
