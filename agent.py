@@ -98,3 +98,27 @@ def time_batao():
     import datetime
     now = datetime.datetime.now().strftime("%I:%M %p, %d %B %Y")
     say(f"Time hai: {now}")
+
+# M2 — Permanent Memory
+MEMORY_FILE = os.path.join(BASE, "memory", "knowledge.json")
+
+def load_memory():
+    try:
+        with open(MEMORY_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+def save_memory(key, value):
+    memory = load_memory()
+    memory[key] = value
+    tmp = MEMORY_FILE + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(memory, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, MEMORY_FILE)
+
+def remember(key, value):
+    save_memory(key, value)
+    say(f"{GREEN}🧠 Yaad rakh liya: {key}{RESET}")
+
