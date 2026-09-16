@@ -1,3 +1,4 @@
+import datetime
 import os, re, subprocess, json, sys
 from dotenv import load_dotenv
 from groq import Groq
@@ -8,6 +9,7 @@ def ask_groq(prompt):
     try:
         memory = load_memory()
         memory_context = json.dumps(memory, ensure_ascii=False, indent=2)
+        history_context = json.dumps(get_memory_history(), ensure_ascii=False, indent=2)
 
         system_prompt = f"""You are Jena, a female AI assistant.
 
@@ -22,6 +24,11 @@ IMPORTANT USER PREFERENCES:
 
 STORED MEMORY:
 {memory_context}
+
+MEMORY HISTORY:
+{history_context}
+
+Memory history contains previous versions of facts. Use it when the user asks about previous, changed, or forgotten information. Do not treat old values as current values unless the user specifically asks about history.
 
 When the user asks what you know about them, clearly list the relevant stored memories.
 When answering normally, naturally follow all applicable saved preferences.
@@ -123,9 +130,48 @@ def load_memory():
     except Exception:
         return {}
 
+def load_history():
+    history_file = os.path.join(BASE, "memory", "history.json")
+    try:
+        with open(history_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data if isinstance(data, dict) else {"history": []}
+    except Exception:
+        return {"history": []}
+
+def get_memory_history(key=None):
+    history = load_history().get("history", [])
+    if key is None:
+        return history
+    return [item for item in history if item.get("key") == key]
+
 def save_memory(key, value):
     memory = load_memory()
+    old_value = memory.get(key)
+
+    if old_value is not None and old_value != value:
+        history_file = os.path.join(BASE, "memory", "history.json")
+        try:
+            with open(history_file, "r", encoding="utf-8") as f:
+                history = json.load(f)
+        except Exception:
+            history = {"history": []}
+
+        history.setdefault("history", []).append({
+            "version": len(history["history"]) + 1,
+            "timestamp": datetime.datetime.now().isoformat(timespec="seconds"),
+            "key": key,
+            "old_value": old_value,
+            "new_value": value
+        })
+
+        tmp_history = history_file + ".tmp"
+        with open(tmp_history, "w", encoding="utf-8") as f:
+            json.dump(history, f, ensure_ascii=False, indent=2)
+        os.replace(tmp_history, history_file)
+
     memory[key] = value
+
     tmp = MEMORY_FILE + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(memory, f, ensure_ascii=False, indent=2)
