@@ -1,0 +1,36 @@
+{
+  "capabilities": {
+    "memory": {
+      "status": "WORKING",
+      "description": "Persistent user memory with version history."
+    },
+    "learning": {
+      "status": "PARTIALLY_WORKING",
+      "description": "Can learn supported Python skills through self-editing."
+    },
+    "conversation": {
+      "status": "WORKING",
+      "description": "Can hold conversations and answer questions through the Groq model."
+    },
+    "self_editing": {
+      "status": "PARTIALLY_WORKING",
+      "description": "Can modify Python code through the supported self-editor flow, but does not independently modify arbitrary code."
+    },
+    "tools": {
+      "status": "NOT_IMPLEMENTED",
+      "description": "No general-purpose external tool system is implemented."
+    },
+    "internet": {
+      "status": "NOT_IMPLEMENTED",
+      "description": "No general web browsing capability is implemented."
+    },
+    "github": {
+      "status": "PARTIALLY_WORKING",
+      "description": "Can execute configured Git commands such as commit and push."
+    },
+    "automation": {
+      "status": "NOT_IMPLEMENTED",
+      "description": "No scheduling or background automation system is implemented."
+    }
+  }
+}

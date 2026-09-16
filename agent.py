@@ -10,6 +10,8 @@ def ask_groq(prompt):
         memory = load_memory()
         memory_context = json.dumps(memory, ensure_ascii=False, indent=2)
         history_context = json.dumps(get_memory_history(), ensure_ascii=False, indent=2)
+        capabilities = load_capabilities()
+        capabilities_context = json.dumps(capabilities, ensure_ascii=False, indent=2)
 
         system_prompt = f"""You are Jena, a female AI assistant.
 
@@ -27,6 +29,18 @@ STORED MEMORY:
 
 MEMORY HISTORY:
 {history_context}
+
+CAPABILITY REGISTER:
+{capabilities_context}
+
+Capability rules:
+- When asked what you can do, inspect the Capability Register first.
+- Only claim capabilities listed in the register.
+- Respect each capability's status: WORKING, PARTIALLY_WORKING, or NOT_IMPLEMENTED.
+- Never invent capabilities based on general AI knowledge.
+- If a capability is NOT_IMPLEMENTED, clearly say it is not implemented.
+- If a capability is PARTIALLY_WORKING, explain the actual limitation briefly.
+- The Capability Register describes Jena's actual implemented capabilities, not the general abilities of the underlying Groq model.
 
 Memory history contains previous versions of facts. Use it when the user asks about previous, changed, or forgotten information. Do not treat old values as current values unless the user specifically asks about history.
 
@@ -122,6 +136,16 @@ say("Welcome, AbuSaif. Jena is ready. 🤖")
 say("How can I help you today?")
 print()
 
+CAPABILITIES_FILE = os.path.join(BASE, "memory", "capabilities.json")
+
+def load_capabilities():
+    try:
+        with open(CAPABILITIES_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data if isinstance(data, dict) else {"capabilities": {}}
+    except Exception:
+        return {"capabilities": {}}
+
 def load_memory():
     try:
         with open(MEMORY_FILE, "r", encoding="utf-8") as f:
@@ -182,6 +206,17 @@ def remember(key, value):
     say(f"{GREEN}🧠 Yaad rakh liya: {key}{RESET}")
 
 def handle_memory(text):
+    t = text.lower().strip()
+
+    memory_triggers = [
+        "remember", "yaad rakh", "yaad rakho", "yaad rakhna",
+        "don't forget", "do not forget", "save this", "save that",
+        "keep this in memory", "memory mein"
+    ]
+
+    if not any(trigger in t for trigger in memory_triggers):
+        return False
+
     intent_prompt = f"""Determine whether the user wants Jena to permanently remember information.
 
 Return ONLY a valid JSON object:
