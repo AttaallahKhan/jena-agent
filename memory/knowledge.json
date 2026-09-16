@@ -1,4 +1,9 @@
 {
-  "test_fact": "Jena permanent memory test OK",
-  "second_fact": "Second memory test OK"
+  "user_name": "AbuSaif",
+  "language_preference": "english_and_roman_urdu",
+  "avoid_scripts": "traditional_urdu, hindi, hinglish, devanagari",
+  "assistant_name": "Jena",
+  "assistant_gender_feminine": true,
+  "son_name": "Saifullah",
+  "favorite_programming_language": "Python"
 }

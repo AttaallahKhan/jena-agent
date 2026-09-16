@@ -6,17 +6,43 @@ client = Groq(api_key=os.getenv("GROQ_KEY_1"))
 
 def ask_groq(prompt):
     try:
+        memory = load_memory()
+        memory_context = json.dumps(memory, ensure_ascii=False, indent=2)
+
+        system_prompt = f"""You are Jena, a female AI assistant.
+
+IMPORTANT USER PREFERENCES:
+- User name: AbuSaif.
+- Speak only in English or Roman Urdu. Default to Roman Urdu (Latin script) unless the user clearly asks for English.
+- Do NOT use traditional Urdu script.
+- Do NOT use Hindi, Hinglish, or Devanagari.
+- You are female and must use feminine grammar when referring to yourself.
+- Treat the following stored memory as persistent user context.
+- Do not invent, alter, or omit stored facts when the user asks what you know about them.
+
+STORED MEMORY:
+{memory_context}
+
+When the user asks what you know about them, clearly list the relevant stored memories.
+When answering normally, naturally follow all applicable saved preferences.
+"""
+
         r = client.chat.completions.create(
-            model="groq/compound-mini",
-            messages=[{"role": "user", "content": prompt}]
+            model=MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.3
         )
         return r.choices[0].message.content
     except Exception as e:
         return f"Groq error: {e}"
 
 BASE=os.path.expanduser("~/jena-agent")
+MEMORY_FILE = os.path.join(BASE, "memory", "knowledge.json")
 AGENT=os.path.join(BASE,"agent.py")
-YELLOW="\033[93m"; WHITE="\033[97m"; RESET="\033[0m"; BOLD="\033[1m"; GREEN="\033[92m"
+YELLOW="\033[93m"; WHITE="\033[97m"; CYAN="\033[96m"; RESET="\033[0m"; BOLD="\033[1m"; GREEN="\033[92m"
 def run(c): return subprocess.getoutput(c)
 def say(m): print(f"{WHITE}{m}{RESET}")
 def load_env():
@@ -77,30 +103,17 @@ def auto_learn(skill_desc):
         say(f"❌ Error: {e}")
 
 MODEL="groq/compound-mini"
-print(f"{WHITE}{BOLD}🤖 Jena v1.2 - Model: {MODEL}{RESET}")
+print(f"{CYAN}{BOLD}")
+print("        ✦  J E N A  A I  ✦")
+print("            A G E N T")
+print(f"{WHITE}        AbuSaif's Assistant{RESET}")
+print(f"{WHITE}      Small Prompts • Real Progress{RESET}")
+print()
+say(f"Model: {MODEL}")
 say(f"Key: {'✅' if get_groq_key() else '❌'}")
-say("Bolo: 'jena time batao'")
-while True:
-    try:
-        ui=input(f"{YELLOW}{BOLD}👤 AbuSaif: {RESET}{YELLOW}").strip()
-        print(RESET,end="")
-    except: break
-    if not ui: continue
-    if ui.lower() in ["exit","q"]: break
-    if handle_intent(ui): continue
-    if "push" in ui.lower():
-        os.chdir(BASE); run("git add. 2>/dev/null"); say(run('git commit -m "Jena v1.2" 2>&1')); say(run("git push origin master 2>&1")); continue
-    say("🤖 Jena: " + ask_groq(ui))
-
-
-# [Jena self-edit 2026-09-16 09:10:23.342045]
-def time_batao():
-    import datetime
-    now = datetime.datetime.now().strftime("%I:%M %p, %d %B %Y")
-    say(f"Time hai: {now}")
-
-# M2 — Permanent Memory
-MEMORY_FILE = os.path.join(BASE, "memory", "knowledge.json")
+say("Welcome, AbuSaif. Jena is ready. 🤖")
+say("How can I help you today?")
+print()
 
 def load_memory():
     try:
@@ -122,3 +135,88 @@ def remember(key, value):
     save_memory(key, value)
     say(f"{GREEN}🧠 Yaad rakh liya: {key}{RESET}")
 
+def handle_memory(text):
+    intent_prompt = f"""Determine whether the user wants Jena to permanently remember information.
+
+Return ONLY a valid JSON object:
+{{"save_memory": true}} or {{"save_memory": false}}
+
+Set save_memory=true when the user is asking to remember, save, retain, or not forget a permanent personal fact or preference, even if expressed naturally in any language.
+
+Set save_memory=false for normal conversation, questions, temporary information, or casual statements.
+
+User message:
+{text}
+"""
+
+    try:
+        intent_response = client.chat.completions.create(
+            model=MODEL,
+            messages=[{"role": "user", "content": intent_prompt}],
+            temperature=0,
+            response_format={"type": "json_object"}
+        )
+
+        intent = json.loads(intent_response.choices[0].message.content)
+
+        if not intent.get("save_memory", False):
+            return False
+
+    except Exception:
+        return False
+
+    prompt = f"""Extract only the permanent user preferences or facts from this request.
+
+Return ONLY a valid JSON object.
+Use short snake_case keys.
+Values must be strings or booleans.
+Do not add markdown, explanation, or any text outside JSON.
+
+User request:
+{text}
+"""
+
+    try:
+        r = client.chat.completions.create(
+            model=MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0,
+            response_format={"type": "json_object"}
+        )
+
+        data = json.loads(r.choices[0].message.content)
+
+        if not isinstance(data, dict):
+            return False
+
+        for key, value in data.items():
+            remember(key, value)
+
+        say("🤖 Jena: Ji, yaad rakhungi.")
+        return True
+
+    except Exception as e:
+        say(f"❌ Memory error: {e}")
+        return True
+def time_batao():
+    import datetime
+    now = datetime.datetime.now().strftime("%I:%M %p, %d %B %Y")
+    say(f"Time hai: {now}")
+
+while True:
+    try:
+        ui=input(f"{YELLOW}{BOLD}👤 AbuSaif: {RESET}{YELLOW}").strip()
+        print(RESET,end="")
+    except: break
+    if not ui: continue
+    if ui.lower() in ["exit","q"]: break
+    if handle_intent(ui): continue
+    if handle_memory(ui): continue
+    if "push" in ui.lower():
+        os.chdir(BASE); run("git add. 2>/dev/null"); say(run('git commit -m "Jena v1.2" 2>&1')); say(run("git push origin master 2>&1")); continue
+    say("🤖 Jena: " + ask_groq(ui))
+
+
+
+# M2 — Permanent Memory
+MEMORY_FILE = os.path.join(BASE, "memory", "knowledge.json")
