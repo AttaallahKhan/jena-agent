@@ -1,4 +1,19 @@
 import os, re, subprocess, json, sys
+from dotenv import load_dotenv
+from groq import Groq
+load_dotenv()
+client = Groq(api_key=os.getenv("GROQ_KEY_1"))
+
+def ask_groq(prompt):
+    try:
+        r = client.chat.completions.create(
+            model="groq/compound-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return r.choices[0].message.content
+    except Exception as e:
+        return f"Groq error: {e}"
+
 BASE=os.path.expanduser("~/jena-agent")
 AGENT=os.path.join(BASE,"agent.py")
 YELLOW="\033[93m"; WHITE="\033[97m"; RESET="\033[0m"; BOLD="\033[1m"; GREEN="\033[92m"
@@ -75,7 +90,7 @@ while True:
     if handle_intent(ui): continue
     if "push" in ui.lower():
         os.chdir(BASE); run("git add. 2>/dev/null"); say(run('git commit -m "Jena v1.2" 2>&1')); say(run("git push origin master 2>&1")); continue
-    say("Bolo 'jena time batao'")
+    say("🤖 Jena: " + ask_groq(ui))
 
 
 # [Jena self-edit 2026-09-16 09:10:23.342045]
