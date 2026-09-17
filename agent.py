@@ -84,6 +84,11 @@ def get_groq_key():
     return None
 def handle_intent(text):
     t=text.lower()
+    if any(x in t for x in ["seekho", "seekh lo", "learn", "skill seekho"]):
+        skill = re.sub(r"\b(skill\s*)?(seekho|seekh lo|learn)\b", "", text, flags=re.I).strip()
+        if skill:
+            auto_learn(skill)
+            return True
     if "time" in t and "bata" in t:
         if "time_batao" in globals():
             time_batao()
@@ -91,7 +96,17 @@ def handle_intent(text):
         else:
             auto_learn("time batao, current time and date batana, function name time_batao")
             return True
+    if "date" in t and "bata" in t:
+        if "date_batao" in globals():
+            date_batao()
+            return True
+        else:
+            auto_learn("date batao, current date batana, function name date_batao")
+            return True
     return False
+def function_exists(name):
+    return re.search(rf"^def\s+{re.escape(name)}\s*\(", open(AGENT, encoding="utf-8").read(), re.MULTILINE) is not None
+
 def auto_learn(skill_desc):
     groq_key=get_groq_key()
     if not groq_key:
@@ -112,6 +127,10 @@ def auto_learn(skill_desc):
         code=re.sub(r'```python|```','',code).strip()
         m=re.search(r'(def\s+\w+\(\):.*)', code, re.DOTALL)
         if m: code=m.group(1)
+        fn=re.search(r"^def\s+(\w+)\s*\(", code, re.MULTILINE)
+        if fn and function_exists(fn.group(1)):
+            say(f"⚠️ Skill {fn.group(1)} already exists. Learning skipped.")
+            return
         say(f"{WHITE}Ye seekha:\n{GREEN}{code}{RESET}")
         import importlib.util
         spec=importlib.util.spec_from_file_location("self_editor", f"{BASE}/tools/self_editor.py")
@@ -304,5 +323,59 @@ def main():
 # M2 — Permanent Memory
 MEMORY_FILE = os.path.join(BASE, "memory", "knowledge.json")
 
+
+# [Jena self-edit 2026-09-17 05:14:42.152974]
+def calculate(expr: str):
+    """
+    Evaluate a simple arithmetic expression and speak the result.
+
+    Parameters:
+        expr (str): A mathematical expression using +, -, *, /, **, //, %, and parentheses.
+
+    Example:
+        calculate("12 * (3 + 4) / 2")
+    """
+    import ast
+    import operator
+
+    # Mapping of AST operators to actual functions
+    ops = {
+        ast.Add: operator.add,
+        ast.Sub: operator.sub,
+        ast.Mult: operator.mul,
+        ast.Div: operator.truediv,
+        ast.FloorDiv: operator.floordiv,
+        ast.Mod: operator.mod,
+        ast.Pow: operator.pow,
+        ast.USub: operator.neg,
+    }
+
+    def _eval(node):
+        if isinstance(node, ast.Num):  # <number>
+            return node.n
+        if isinstance(node, ast.BinOp):  # <left> <operator> <right>
+            left = _eval(node.left)
+            right = _eval(node.right)
+            return ops[type(node.op)](left, right)
+        if isinstance(node, ast.UnaryOp):  # - <operand>
+            operand = _eval(node.operand)
+            return ops[type(node.op)](operand)
+        raise ValueError("Unsupported expression")
+
+    # Parse the expression safely
+    try:
+        parsed = ast.parse(expr, mode='eval')
+        result = _eval(parsed.body)
+        say(f"Result hai: {result}")
+    except Exception as e:
+        say(f"Error: {e}")
+
 if __name__ == "__main__":
     main()
+
+
+# [Jena self-edit 2026-09-17 05:07:04.712350]
+def date_batao():
+    import datetime
+    today = datetime.datetime.now().strftime("%d %B %Y")
+    say(f"Date hai: {today}")

@@ -31,7 +31,12 @@ def safe_edit(mode, content, target_func=None):
     bk = backup()
 
     if mode == "append":
-        new = old + f"\n\n# [Jena self-edit {datetime.datetime.now()}]\n{content}\n"
+        marker = "\nif __name__ == \"__main__\":"
+        addition = f"\n\n# [Jena self-edit {datetime.datetime.now()}]\n{content}\n"
+        if marker in old:
+            new = old.replace(marker, addition + marker, 1)
+        else:
+            new = old + addition
     elif mode == "replace_func" and target_func:
         # simple: function ko dhoond ke replace karo
         import re
