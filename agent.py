@@ -124,17 +124,18 @@ def auto_learn(skill_desc):
         say(f"❌ Error: {e}")
 
 MODEL="groq/compound-mini"
-print(f"{CYAN}{BOLD}")
-print("        ✦  J E N A  A I  ✦")
-print("            A G E N T")
-print(f"{WHITE}        AbuSaif's Assistant{RESET}")
-print(f"{WHITE}      Small Prompts • Real Progress{RESET}")
-print()
-say(f"Model: {MODEL}")
-say(f"Key: {'✅' if get_groq_key() else '❌'}")
-say("Welcome, AbuSaif. Jena is ready. 🤖")
-say("How can I help you today?")
-print()
+def startup_ui():
+    print(f"{CYAN}{BOLD}")
+    print("        ✦  J E N A  A I  ✦")
+    print("            A G E N T")
+    print(f"{WHITE}        AbuSaif's Assistant{RESET}")
+    print(f"{WHITE}      Small Prompts • Real Progress{RESET}")
+    print()
+    say(f"Model: {MODEL}")
+    say(f"Key: {'✅' if get_groq_key() else '❌'}")
+    say("Welcome, AbuSaif. Jena is ready. 🤖")
+    say("How can I help you today?")
+    print()
 
 CAPABILITIES_FILE = os.path.join(BASE, "memory", "capabilities.json")
 
@@ -284,20 +285,24 @@ def time_batao():
     now = datetime.datetime.now().strftime("%I:%M %p, %d %B %Y")
     say(f"Time hai: {now}")
 
-while True:
-    try:
-        ui=input(f"{YELLOW}{BOLD}👤 AbuSaif: {RESET}{YELLOW}").strip()
-        print(RESET,end="")
-    except: break
-    if not ui: continue
-    if ui.lower() in ["exit","q"]: break
-    if handle_intent(ui): continue
-    if handle_memory(ui): continue
-    if "push" in ui.lower():
-        os.chdir(BASE); run("git add. 2>/dev/null"); say(run('git commit -m "Jena v1.2" 2>&1')); say(run("git push origin master 2>&1")); continue
-    say("🤖 Jena: " + ask_groq(ui))
-
+def main():
+    startup_ui()
+    while True:
+        try:
+            ui=input(f"{YELLOW}{BOLD}👤 AbuSaif: {RESET}{YELLOW}").strip()
+            print(RESET,end="")
+        except: break
+        if not ui: continue
+        if ui.lower() in ["exit","q"]: break
+        if handle_intent(ui): continue
+        if handle_memory(ui): continue
+        if "push" in ui.lower():
+            os.chdir(BASE); run("git add. 2>/dev/null"); say(run('git commit -m "Jena v1.2" 2>&1')); say(run("git push origin master 2>&1")); continue
+        say("🤖 Jena: " + ask_groq(ui))
 
 
 # M2 — Permanent Memory
 MEMORY_FILE = os.path.join(BASE, "memory", "knowledge.json")
+
+if __name__ == "__main__":
+    main()
